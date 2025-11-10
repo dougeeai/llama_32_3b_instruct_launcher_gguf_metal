@@ -1,0 +1,79 @@
+# environment.yml - Conda environment for Llama 3.2 3B GGUF Launcher on macOS
+# Usage: 
+#   1. conda env create -f environment.yml
+#   2. conda activate llama_32_3b_instruct_launcher_gguf_metal
+#   3. CMAKE_ARGS="-DLLAMA_METAL=on" pip install llama-cpp-python --no-cache-dir
+
+name: llama_32_3b_instruct_launcher_gguf_metal
+channels:
+  - conda-forge
+  - defaults
+
+dependencies:
+  # Python 3.13 (latest stable, optimized for Apple Silicon)
+  - python=3.13
+  
+  # Core dependencies
+  - pip
+  - setuptools
+  - wheel
+  
+  # System monitoring
+  - psutil  # Cross-platform process and system monitoring
+  
+  # Build tools (required for compiling llama-cpp-python with Metal)
+  - cmake
+  - ninja
+  - make
+  
+  # macOS-specific compiler tools
+  - clang_osx-arm64  # For Apple Silicon (M1/M2/M3/M4)
+  - clangxx_osx-arm64
+  - llvm-openmp  # OpenMP support for parallel processing
+  
+  # Optional but useful for development
+  - ipykernel  # For VSCode Jupyter support with # %% cells
+  - jupyter
+  
+  # Pip dependencies
+  - pip:
+    # For model downloads from HuggingFace
+    - huggingface-hub
+    
+    # Utilities
+    - tqdm  # Progress bars
+    - rich  # Rich terminal output and formatting
+    - typer  # CLI interface (optional, but nice for launchers)
+    
+    # JSON Schema support (for grammar/structured output)
+    - jsonschema
+    - pydantic
+    
+    # Performance monitoring (macOS compatible)
+    - py-cpuinfo  # Detailed CPU info (works on macOS)
+    
+    # File handling and downloads
+    - requests  # For downloading models
+    - urllib3
+    
+    # Terminal enhancements
+    - colorama  # Cross-platform colored terminal text
+    - tabulate  # Pretty-print tabular data
+    
+# Post-installation steps (add to your setup script or run manually):
+# 
+# For Apple Silicon (M1/M2/M3/M4) Macs:
+#   CMAKE_ARGS="-DLLAMA_METAL=on" pip install llama-cpp-python --no-cache-dir
+#
+# To verify Metal support after installation:
+#   python -c "from llama_cpp import Llama; print('Metal support installed successfully')"
+#
+# Optional: Install additional macOS monitoring tools via pip:
+#   pip install pync  # macOS notifications
+
+# Notes:
+# - Metal acceleration works on ALL Apple Silicon chips (M1/M2/M3/M4 series)
+# - The llama-cpp-python package must be compiled locally for Metal support
+# - Compilation typically takes 5-10 minutes on Apple Silicon
+# - Models will use Unified Memory (shared between CPU and GPU on Apple Silicon)
+# - Performance scales with chip generation (M4 > M3 > M2 > M1)
