@@ -1,26 +1,19 @@
 #!/usr/bin/env python3
 # %% [0.0] Launcher Script Info
-"""
-Llama 3.2 3B Instruct GGUF Launcher for macOS - BARE BONES VERSION
-Minimal code needed to run the model with Metal acceleration
-Author: DougeeAI
-Date: November 2025
-Python: 3.13
-Metal: Enabled
-"""
+# Minimal launcher script metadata
+# Llama 3.2 3B Instruct GGUF Launcher for macOS - BARE BONES VERSION
+# Description: Minimal code needed to run the model with Metal acceleration
+# Author: dougeeai
+# Created: 2025-11-09
+# Last Updated: 2025-11-11
 
 # %% [0.1] Model Card & Summary
-"""
-Model: Llama 3.2 3B Instruct
-Quantization: Q8_0
-File Size: ~3.4 GB
-This bare-bones version runs the model with minimal features
-"""
+# Bare bones version - minimal code, no checks
+# MODEL: Llama-3.2-3B-Instruct
+# Architecture: Llama 3.2 (3.21B parameters)
 
 # %% [1.0] Core Imports
-"""
-Essential imports only - no fancy UI or monitoring
-"""
+# Essential imports only
 import os
 import sys
 from pathlib import Path
@@ -34,81 +27,43 @@ except ImportError:
     sys.exit(1)
 
 # %% [1.1] Utility Imports
-"""
-Bare version - no utility imports needed
-"""
-# Basic version only - this cell not needed
+# Bare Version: Utility imports skipped
 
-# %% [2.0] User Configuration - All Settings
-"""
-Minimal settings for bare-bones operation
-"""
-# Model Path - UPDATE THIS IF YOUR FILENAME IS DIFFERENT
-MODEL_PATH = os.path.expanduser("~/Documents/ai/models/llama_32_3b_instruct_gguf/llama_32_3b_instruct_q8_0.gguf") #Update with model location
+# %% [2.0] Base Directory Configuration
+# Set base directory for portability
+BASE_DIR = os.path.expanduser("~/Documents/ai")  # <-- CHANGE THIS to your AI folder location
+MODELS_DIR = os.path.join(BASE_DIR, "models")
 
-# Essential Settings Only
+# %% [2.1] Model Source Configuration
+# Simplified model path configuration
+MODEL_NAME = "llama_32_3b_instruct_gguf"
+MODEL_FILENAME = "llama_32_3b_instruct_q8_0.gguf"  # Change for different quants
+MODEL_PATH = os.path.join(MODELS_DIR, MODEL_NAME, MODEL_FILENAME)
+
+# %% [2.2] User Configuration - All Settings
+# Core settings for model operation
 N_GPU_LAYERS = -1    # Use Metal GPU
 N_CTX = 8192         # Context window
 MAX_TOKENS = 2048    # Max response length
 TEMPERATURE = 0.7    # Randomness
 VERBOSE = False      # Set True for debug
 
-# %% [2.1] Model Configuration Dataclass
-"""
-Bare version - no dataclass needed, using simple variables
-"""
-# Basic version only - this cell not needed
-
-# %% [2.2] Model Path Validation
-"""
-Simple check that model file exists
-"""
-def validate_model():
-    model_path = Path(MODEL_PATH)
-    if not model_path.exists():
-        print(f"Error: Model not found at: {model_path}")
-        print("Please check the path and filename")
-        return False
-    print(f"Found model: {model_path.name}")
-    return True
-
-# %% [2.3] Model Paths - HF Download (Optional)
-"""
-Bare version - manual download only
-"""
-# Basic version only - this cell not needed
-# Download manually from: https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF
+# %% [2.3] Model Configuration Dataclass
+# Bare Version: Dataclass skipped - using direct variables
 
 # %% [3.0] Hardware Auto-Detection
-"""
-Bare version - using defaults, no auto-detection
-"""
-# Basic version only - this cell not needed
+# Bare Version: Auto-detection skipped
 
 # %% [3.1] Hardware Detection
-"""
-Bare version - no hardware detection
-"""
-# Basic version only - this cell not needed
+# Bare Version: Hardware detection skipped
 
 # %% [3.2] Environment Validation
-"""
-Simple check that llama-cpp-python is available
-"""
-def check_environment():
-    try:
-        from llama_cpp import Llama
-        print("llama-cpp-python is installed")
-        return True
-    except ImportError:
-        print("llama-cpp-python not found")
-        return False
+# Bare Version: Environment validation skipped
 
 # %% [4.0] Model Loader
-"""
-Simple model loading - no class wrapper
-"""
+# Direct model loading function
 def load_model():
+    """Simple model loading"""
     print("Loading model...")
     try:
         model = Llama(
@@ -125,38 +80,18 @@ def load_model():
         return None
 
 # %% [4.1] Model Validation
-"""
-Bare version - validation done in load_model
-"""
-# Basic version only - this cell not needed
+# Bare Version: Model validation skipped
 
 # %% [5.0] Model Initialization
-"""
-Bare version - initialization done in load_model
-"""
-# Basic version only - this cell not needed
+# Bare Version: Using direct load_model() instead
 
 # %% [6.0] Inference Test
-"""
-Quick test to verify model works
-"""
-def test_model(model):
-    print("\nTesting model...")
-    try:
-        response = model("Hello! Please respond with a brief greeting.", 
-                        max_tokens=50)
-        text = response['choices'][0]['text']
-        print(f"Test response: {text}")
-        return True
-    except Exception as e:
-        print(f"Test failed: {e}")
-        return False
+# Bare Version: Inference test skipped
 
 # %% [6.1] Terminal Chat Interface
-"""
-Minimal chat loop
-"""
+# Minimal chat loop with streaming
 def chat_loop(model):
+    """Minimal chat interface"""
     print("\n=== Simple Chat (type 'quit' to exit) ===\n")
     
     messages = []
@@ -197,38 +132,27 @@ def chat_loop(model):
             # Add to conversation history
             messages.append({"role": "assistant", "content": full_response})
             
+            # Keep history manageable
+            if len(messages) > 20:
+                messages = messages[-20:]
+            
         except Exception as e:
             print(f"\nError: {e}")
 
 # %% [7.0] Optional Features
-"""
-Bare version - no optional features
-"""
-# Basic version only - this cell not needed
+# Bare Version: Optional features skipped
 
 # %% [8.0] Main Entry Point
-"""
-Minimal startup sequence
-"""
+# Simple main function - load and chat
 def main():
+    """Bare bones main - just load and chat"""
     print("=== Llama 3.2 3B Bare Bones Launcher ===\n")
-    
-    # Check environment
-    if not check_environment():
-        return 1
-    
-    # Validate model path
-    if not validate_model():
-        return 1
     
     # Load model
     model = load_model()
     if not model:
+        print("Failed to load model")
         return 1
-    
-    # Test model
-    if not test_model(model):
-        print("Warning: Test failed but continuing anyway...")
     
     # Start chat
     chat_loop(model)
