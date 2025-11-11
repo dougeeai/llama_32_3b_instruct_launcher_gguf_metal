@@ -1,29 +1,24 @@
 #!/usr/bin/env python3
 # %% [0.0] Launcher Script Info
-"""
-Llama 3.2 3B Instruct GGUF Launcher for macOS with Metal Acceleration
-Optimized for Apple Silicon (M1/M2/M3/M4) with Metal GPU acceleration
-Author: DougeeAI
-Date: November 2025
-Python: 3.13
-Metal: Enabled
-"""
+# Script metadata and documentation for version tracking
+# Llama 3.2 3B Instruct GGUF Launcher for macOS with Metal Acceleration
+# Description: Optimized for Apple Silicon (M1/M2/M3/M4) with Metal GPU acceleration
+# Author: dougeeai
+# Created: 2025-11-09
+# Last Updated: 2025-11-11
+# Optimized for: Python 3.13 + Metal
 
 # %% [0.1] Model Card & Summary
-"""
-Model: Llama 3.2 3B Instruct
-Architecture: Llama 3.2 (128k context capable, trained on 8k)
-Quantization: Q8_0 (8-bit, high quality)
-File Size: ~3.4 GB
-Use Cases: General chat, instruction following, creative writing, coding assistance
-Memory Requirements: ~4-6 GB unified memory on Apple Silicon
-Performance: Excellent on M1/M2/M3/M4 with Metal acceleration
-"""
+# Quick reference for model capabilities and requirements
+# MODEL: Llama-3.2-3B-Instruct
+# Architecture: Llama 3.2 (3.21B parameters)
+# Context: 128K capable (trained on 8k)
+# Best For: General chat, instruction following, creative writing, coding assistance
+# Memory Requirements: ~4-6 GB unified memory on Apple Silicon
+# Performance: Excellent on M1/M2/M3/M4 with Metal acceleration
 
 # %% [1.0] Core Imports
-"""
-Core libraries required for GGUF operation
-"""
+# Essential Python libraries required for GGUF operation
 import os
 import sys
 import json
@@ -45,9 +40,7 @@ except ImportError:
     sys.exit(1)
 
 # %% [1.1] Utility Imports
-"""
-Supporting libraries for monitoring and performance
-"""
+# Supporting libraries for hardware monitoring and performance metrics
 import time
 import psutil
 import platform
@@ -65,14 +58,76 @@ from rich import print as rprint
 # Initialize Rich console
 console = Console()
 
-# %% [2.0] User Configuration - All Settings
-"""
-Single location for ALL user-modifiable settings
-Adjust these based on your Mac's capabilities and preferences
-"""
+# %% [2.0] Base Directory Configuration
+# Set base AI directory - all paths will be relative to this location
 
-# Model Path - Standard macOS Documents/ai location with model-specific folder
-MODEL_PATH = os.path.expanduser("~/Documents/ai/models/llama_32_3b_instruct_gguf/llama_32_3b_instruct_q8_0.gguf") #Update with model location
+# Set your base directory (change this for your system)
+# macOS standard location in Documents
+BASE_DIR = os.path.expanduser("~/Documents/ai")  # <-- CHANGE THIS to your AI folder location
+
+# Directory structure (automatically created from BASE_DIR)
+MODELS_DIR = os.path.join(BASE_DIR, "models")
+HF_DOWNLOADS_DIR = os.path.join(MODELS_DIR, "huggingface_downloads")  # For HF downloads
+HF_CACHE_DIR = os.path.join(HF_DOWNLOADS_DIR, "cache")  # HF cache
+
+# Create directories if they don't exist
+for dir_path in [MODELS_DIR, HF_DOWNLOADS_DIR, HF_CACHE_DIR]:
+    Path(dir_path).mkdir(parents=True, exist_ok=True)
+
+# %% [2.1] Model Source Configuration
+# Configure where to load the model from - local file or HuggingFace download
+
+# Choose model source: "local" or "huggingface"
+MODEL_SOURCE = "local"  # Options: "local" or "huggingface"
+
+# Model identification
+MODEL_NAME = "llama_32_3b_instruct_gguf"  # Folder name for this model
+MODEL_FILENAME = "llama_32_3b_instruct_q8_0.gguf"  # Actual GGUF filename
+
+# Local file configuration (for manually downloaded models)
+# Local models go directly in: BASE_DIR/models/MODEL_NAME/
+LOCAL_MODEL_PATH = os.path.join(MODELS_DIR, MODEL_NAME, MODEL_FILENAME)
+
+# HuggingFace configuration
+HF_REPO_ID = "bartowski/Llama-3.2-3B-Instruct-GGUF"
+HF_FILENAME = "Llama-3.2-3B-Instruct-Q8_0.gguf"  # Filename on HuggingFace
+# HuggingFace models will be saved to: models/huggingface_downloads/MODEL_NAME/
+HF_MODEL_DIR = os.path.join(HF_DOWNLOADS_DIR, MODEL_NAME)
+
+# Resolve actual model path based on source
+if MODEL_SOURCE == "huggingface":
+    try:
+        from huggingface_hub import hf_hub_download
+        console.print(f"[cyan]Downloading model from HuggingFace: {HF_REPO_ID}/{HF_FILENAME}[/cyan]")
+        console.print(f"[cyan]Download location: {HF_MODEL_DIR}[/cyan]")
+        console.print(f"[cyan]Cache location: {HF_CACHE_DIR}[/cyan]")
+        
+        MODEL_PATH = hf_hub_download(
+            repo_id=HF_REPO_ID,
+            filename=HF_FILENAME,
+            cache_dir=HF_CACHE_DIR,
+            local_dir=HF_MODEL_DIR,
+            local_dir_use_symlinks=False,
+            resume_download=True
+        )
+        console.print(f"[green]Model downloaded to: {MODEL_PATH}[/green]")
+    except ImportError:
+        console.print("[red]ERROR: huggingface-hub not installed. Run: pip install huggingface-hub[/red]")
+        console.print("[yellow]Falling back to local path...[/yellow]")
+        MODEL_PATH = LOCAL_MODEL_PATH
+    except Exception as e:
+        console.print(f"[red]ERROR downloading from HuggingFace: {e}[/red]")
+        console.print("[yellow]Falling back to local path...[/yellow]")
+        MODEL_PATH = LOCAL_MODEL_PATH
+else:
+    MODEL_PATH = LOCAL_MODEL_PATH
+    if not Path(MODEL_PATH).exists():
+        console.print(f"[yellow]WARNING: Local model not found at: {MODEL_PATH}[/yellow]")
+        console.print(f"[yellow]Expected location: {LOCAL_MODEL_PATH}[/yellow]")
+        console.print(f"[cyan]To download from HuggingFace, set MODEL_SOURCE = 'huggingface'[/cyan]")
+
+# %% [2.2] User Configuration - All Settings
+# Central location for all user-modifiable model and generation settings
 
 # Hardware Settings
 N_GPU_LAYERS = -1        # -1 = offload all layers to Metal GPU
@@ -105,10 +160,34 @@ SYSTEM_MESSAGE = "You are a helpful AI assistant."
 VERBOSE = False        # Set to True for debugging output
 SHOW_TIMINGS = True    # Show generation timings
 
-# %% [2.1] Model Configuration Dataclass
-"""
-Structured container for configuration
-"""
+# Generation Presets (alternative to manual settings above)
+GENERATION_PRESETS = {
+    "precise": {
+        "temperature": 0.1,
+        "top_p": 0.95,
+        "top_k": 40,
+        "repeat_penalty": 1.1
+    },
+    "balanced": {
+        "temperature": 0.7,
+        "top_p": 0.9,
+        "top_k": 40,
+        "repeat_penalty": 1.1
+    },
+    "creative": {
+        "temperature": 1.2,
+        "top_p": 0.95,
+        "top_k": 100,
+        "repeat_penalty": 1.0
+    }
+}
+
+# Select a preset (None = use manual settings above)
+USE_PRESET = None  # Options: None, "precise", "balanced", "creative"
+
+# %% [2.3] Model Configuration Dataclass
+# Structured container for passing configuration to model loader
+
 @dataclass
 class ModelConfig:
     """Configuration for Llama model with Metal acceleration"""
@@ -151,51 +230,9 @@ class ModelConfig:
         if self.n_threads is None:
             self.n_threads = psutil.cpu_count(logical=False)
 
-# %% [2.2] Model Path Validation
-"""
-Verify model file exists before proceeding
-"""
-def validate_model_path(config: ModelConfig) -> bool:
-    """Check if model file exists"""
-    model_path = Path(config.model_path)
-    
-    if not model_path.exists():
-        console.print(f"[red]Error: Model file not found at:[/red]")
-        console.print(f"[yellow]{model_path}[/yellow]")
-        console.print("\n[cyan]Please ensure the model is downloaded to:[/cyan]")
-        console.print(f"[green]~/Documents/ai/models/llama_32_3b_instruct_gguf/[/green]") #Update with model location
-        return False
-    
-    # Check file size
-    size_gb = model_path.stat().st_size / (1024**3)
-    console.print(f"[green]Found model: {model_path.name} ({size_gb:.1f} GB)[/green]")
-    
-    return True
-
-# %% [2.3] Model Paths - HF Download (Optional)
-"""
-Alternative method to download models from HuggingFace
-Uncomment to enable automatic downloads
-"""
-# from huggingface_hub import hf_hub_download
-# 
-# def download_model(repo_id: str, filename: str, cache_dir: str = "~/Documents/ai/models") -> str:
-#     """Download model from HuggingFace Hub"""
-#     cache_dir = os.path.expanduser(cache_dir)
-#     return hf_hub_download(
-#         repo_id=repo_id,
-#         filename=filename,
-#         cache_dir=cache_dir,
-#         resume_download=True
-#     )
-# 
-# # Example usage:
-# # model_path = download_model("bartowski/Llama-3.2-3B-Instruct-GGUF", "Llama-3.2-3B-Instruct-Q8_0.gguf")
-
 # %% [3.0] Hardware Auto-Detection
-"""
-Automatically determine optimal settings based on hardware
-"""
+# Automatically determine optimal settings based on available hardware
+
 def auto_detect_settings() -> Dict[str, Any]:
     """Detect hardware and suggest optimal settings"""
     settings = {}
@@ -221,9 +258,8 @@ def auto_detect_settings() -> Dict[str, Any]:
     return settings
 
 # %% [3.1] Hardware Detection
-"""
-Detailed hardware information gathering
-"""
+# Gather detailed hardware information for optimization decisions
+
 class HardwareDetector:
     """Detect and display hardware information"""
     
@@ -317,9 +353,8 @@ class HardwareDetector:
         console.print(table)
 
 # %% [3.2] Environment Validation
-"""
-Verify Python version and required packages
-"""
+# Verify Python version and required packages before proceeding
+
 def validate_environment() -> bool:
     """Check environment setup"""
     issues = []
@@ -348,9 +383,8 @@ def validate_environment() -> bool:
     return True
 
 # %% [4.0] Model Loader
-"""
-Class to handle GGUF model loading with Metal acceleration
-"""
+# Class to handle GGUF model loading with optimal settings
+
 class GGUFModelLoader:
     """Load and manage GGUF models"""
     
@@ -412,16 +446,26 @@ class GGUFModelLoader:
             return False
 
 # %% [4.1] Model Validation
-"""
-Verify GGUF file integrity
-"""
+# Verify GGUF file integrity before attempting to load
+
 def validate_gguf_file(path: str) -> bool:
     """Check if file is valid GGUF format"""
+    path = Path(path)
+    
+    if not path.exists():
+        console.print(f"[red]Model file not found: {path}[/red]")
+        return False
+    
+    # Check file size
+    size_gb = path.stat().st_size / (1024**3)
+    console.print(f"[green]Found model: {path.name} ({size_gb:.1f} GB)[/green]")
+    
     try:
         with open(path, 'rb') as f:
             # GGUF files start with 'GGUF' magic bytes
             magic = f.read(4)
             if magic == b'GGUF':
+                console.print("[green]Valid GGUF file detected[/green]")
                 return True
             else:
                 console.print(f"[red]Invalid GGUF file (magic bytes: {magic})[/red]")
@@ -431,16 +475,27 @@ def validate_gguf_file(path: str) -> bool:
         return False
 
 # %% [5.0] Model Initialization
-"""
-Create and configure model instance
-"""
-def initialize_model(config: ModelConfig) -> Optional[GGUFModelLoader]:
+# Create and configure model instance with optional preset support
+
+def initialize_model(config: Optional[ModelConfig] = None) -> Optional[GGUFModelLoader]:
     """Initialize the model with configuration"""
     
-    # Validate model file
-    if not validate_model_path(config):
-        return None
+    if config is None:
+        # Apply preset if selected
+        gen_settings = {}
+        if USE_PRESET and USE_PRESET in GENERATION_PRESETS:
+            gen_settings = GENERATION_PRESETS[USE_PRESET]
+            console.print(f"[cyan]Using generation preset: {USE_PRESET}[/cyan]")
+        
+        config = ModelConfig(
+            model_path=MODEL_PATH,
+            temperature=gen_settings.get('temperature', TEMPERATURE),
+            top_p=gen_settings.get('top_p', TOP_P),
+            top_k=gen_settings.get('top_k', TOP_K),
+            repeat_penalty=gen_settings.get('repeat_penalty', REPEAT_PENALTY)
+        )
     
+    # Validate model file
     if not validate_gguf_file(config.model_path):
         return None
     
@@ -454,9 +509,8 @@ def initialize_model(config: ModelConfig) -> Optional[GGUFModelLoader]:
     return loader
 
 # %% [6.0] Inference Test
-"""
-Quick test to verify model works
-"""
+# Quick test to verify model works and measure performance
+
 def test_inference(loader: GGUFModelLoader) -> bool:
     """Run a test inference"""
     console.print("\n[cyan]Running inference test...[/cyan]")
@@ -490,9 +544,8 @@ def test_inference(loader: GGUFModelLoader) -> bool:
         return False
 
 # %% [6.1] Terminal Chat Interface
-"""
-Interactive chat loop for conversation
-"""
+# Interactive chat loop with conversation history and streaming responses
+
 class ChatInterface:
     """Interactive chat with conversation history"""
     
@@ -538,6 +591,11 @@ class ChatInterface:
         
         # Add assistant message to history
         self.messages.append({"role": "assistant", "content": full_response})
+        
+        # Keep conversation history manageable
+        if len(self.messages) > 20:
+            # Keep system message and last 18 messages
+            self.messages = [self.messages[0]] + self.messages[-18:]
         
         return full_response
     
@@ -603,9 +661,8 @@ Commands:
         console.print(Panel(help_text, title="Help", border_style="blue"))
 
 # %% [7.0] Optional Features
-"""
-Additional capabilities (JSON mode, grammar constraints)
-"""
+# Additional capabilities like JSON mode and grammar constraints
+
 # def create_json_grammar():
 #     """Create grammar for JSON output"""
 #     return {
@@ -622,9 +679,8 @@ Additional capabilities (JSON mode, grammar constraints)
 #     }
 
 # %% [8.0] Main Entry Point
-"""
-Orchestrate entire launch sequence
-"""
+# Orchestrate the entire launch sequence from validation to chat interface
+
 def main():
     """Main entry point - runs all steps in order"""
     
